@@ -64,6 +64,7 @@ export default {
       const ownerId = record.ownerId;
       const id = record.id;
       const name = record.name || 'unknown';
+      //very unique character ^-^
       const uri = `neosrec:///${ownerId}/${id}`;
       return [name, uri];
     });

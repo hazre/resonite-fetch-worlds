@@ -38,9 +38,9 @@ export default {
       const uri = `resrec:///${ownerId}/${id}`;
       return [name, uri];
     });
-
     if (format === 'json') {
-      return new Response(JSON.stringify(records), {
+      const recordsObj = records.map((record) => ({ name: record[0], uri: record[1] }));
+      return new Response(JSON.stringify(recordsObj), {
         headers: {
           'Content-Type': 'application/json',
         },

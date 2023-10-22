@@ -2,6 +2,12 @@ import { Record, Env, Records, RecordSearchParameters, SearchSortParameter, Sear
 
 const defaultCount = 1000000;
 
+const PADDING = 8;
+
+function hexStr(number: number) {
+  return number.toString(16).padStart(PADDING, '0');
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const { searchParams } = new URL(request.url);
@@ -10,7 +16,7 @@ export default {
     const url = 'https://api.resonite.com/records/pagedSearch';
     const sortBy = searchParams.get('sortby') || 'TotalVisits';
     const sortDirection = searchParams.get('sortdirection') || 'Descending';
-    const format = searchParams.get('format') || 'csv';
+    const format = searchParams.get('format');
 
     if (!(sortBy in SearchSortParameter)) return new Response(fail(400, 'sortBy parameter is invalid. Options are: CreationDate, LastUpdateDate, FirstPublishTime, TotalVisits, Name, Random'));
     if (!(sortDirection in SearchSortDirection)) return new Response(fail(400, 'sortDirection parameter is invalid. Options are: Ascending, Descending'));
@@ -38,22 +44,44 @@ export default {
       const uri = `resrec:///${ownerId}/${id}`;
       return [name, uri];
     });
+
     if (format === 'json') {
-      const recordsObj = records.map((record) => ({ name: record[0], uri: record[1] }));
-      return new Response(JSON.stringify(recordsObj), {
+      const obj = JSON.stringify(records);
+      return new Response(obj, {
         headers: {
           'Content-Type': 'application/json',
         },
       });
-    } else {
-      // format is 'csv'
-      const csv = records.map((record: string[]) => record.join('|亡|')).join('\n');
+    }
+
+    if (format === 'csv') {
+      const csv = records.map((record: string[]) => record.join('|')).join('\n');
       return new Response(csv, {
         headers: {
           'Content-Type': 'text/csv',
         },
       });
     }
+
+    let output = '';
+    output += hexStr(records.length);
+    output += hexStr(0);
+    let index = 0;
+    let mergedData = '';
+    for (let i = 0; i < records.length; i++) {
+      let [k, v] = records[i];
+      let block = hexStr(k.length) + hexStr(v.length) + k + v;
+      index += block.length;
+      output += hexStr(index);
+      mergedData += block;
+    }
+    output += mergedData;
+
+    return new Response(output, {
+      headers: {
+        'Content-Type': 'text/plain',
+      },
+    });
   },
 };
 
